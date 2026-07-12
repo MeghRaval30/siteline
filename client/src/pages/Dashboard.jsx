@@ -41,7 +41,7 @@ export default function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
             <div className="card">
               <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Total Assets</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>{(stats.assetsAvailable || 0) + (stats.assetsAllocated || 0)}</p>
+              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.totalAssets || 0}</p>
             </div>
             <div className="card">
               <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Assets Allocated</h3>

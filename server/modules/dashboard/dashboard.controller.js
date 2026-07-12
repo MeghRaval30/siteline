@@ -10,6 +10,7 @@ const getKPIs = async (req, res) => {
 
     // Run aggregations concurrently
     const [
+      totalAssets,
       assetsAvailable,
       assetsAllocated,
       maintenanceToday,
@@ -18,8 +19,9 @@ const getKPIs = async (req, res) => {
       upcomingReturnsResult,
       overdueReturnsList
     ] = await Promise.all([
+      prisma.asset.count(),
       prisma.asset.count({ where: { status: 'Available' } }),
-      prisma.asset.count({ where: { status: 'Allocated' } }),
+      prisma.asset.count({ where: { status: { in: ['Allocated', 'In Use'] } } }),
       prisma.maintenanceRequest.count({
         where: { status: { in: ['Approved', 'TechnicianAssigned', 'InProgress'] } }
       }),
@@ -59,6 +61,7 @@ const getKPIs = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
+        totalAssets,
         assetsAvailable,
         assetsAllocated,
         maintenanceToday,
