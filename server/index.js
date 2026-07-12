@@ -62,7 +62,11 @@ app.use((err, req, res, next) => {
   });
 });
 
+const { initializeOllama } = require('./shared/ollamaSetup');
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`SiteLine Server running on port ${port}`);
+  // Auto-start Ollama and pull model in background
+  initializeOllama();
 });

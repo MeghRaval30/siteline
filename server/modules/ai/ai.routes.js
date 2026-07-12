@@ -3,6 +3,7 @@ const router = express.Router();
 const authenticate = require('../../shared/authenticate');
 const { runAgent } = require('./agent');
 const prisma = require('../../shared/prismaClient');
+const { getOllamaStatus } = require('../../shared/ollamaSetup');
 
 // POST /api/v1/ai/chat
 router.post('/chat', authenticate, async (req, res) => {
@@ -44,12 +45,15 @@ router.post('/chat', authenticate, async (req, res) => {
 // GET /api/v1/ai/status
 router.get('/status', authenticate, async (req, res) => {
   try {
+    const status = getOllamaStatus();
+    // Also do a live check
     const response = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(3000) });
     const data = await response.json();
     const hasModel = data.models?.some(m => m.name?.includes('qwen'));
-    res.json({ success: true, data: { online: true, model_available: hasModel } });
+    res.json({ success: true, data: { online: true, model_available: hasModel, pulling: status.pulling, error: status.error } });
   } catch {
-    res.json({ success: true, data: { online: false, model_available: false } });
+    const status = getOllamaStatus();
+    res.json({ success: true, data: { online: false, model_available: false, pulling: status.pulling, error: status.error } });
   }
 });
 
