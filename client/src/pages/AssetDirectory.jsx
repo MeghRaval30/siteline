@@ -5,15 +5,17 @@ export default function AssetDirectory() {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [search, setSearch] = useState('');
+
   useEffect(() => {
     fetchAssets();
-  }, []);
+  }, [search]);
 
   const fetchAssets = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.get('/assets');
-      setAssets(data || []);
+      const data = await apiClient.get(`/assets?search=${encodeURIComponent(search)}`);
+      setAssets(data.data || data || []);
     } catch (error) {
       console.error('Failed to fetch assets:', error);
       setAssets([]);
@@ -26,7 +28,16 @@ export default function AssetDirectory() {
     <div className="page-content">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1>Asset Directory</h1>
-        <button className="btn btn-primary">Add New Asset</button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <input 
+            type="text" 
+            className="form-control" 
+            placeholder="Search assets..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button className="btn btn-primary">Add New Asset</button>
+        </div>
       </div>
 
       <div className="card">
@@ -37,7 +48,7 @@ export default function AssetDirectory() {
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>Tag / ID</th>
                   <th>Name</th>
                   <th>Category</th>
                   <th>Status</th>
@@ -52,9 +63,9 @@ export default function AssetDirectory() {
                 ) : (
                   assets.map(asset => (
                     <tr key={asset.id}>
-                      <td>{asset.id}</td>
+                      <td>{asset.asset_tag || asset.id}</td>
                       <td>{asset.name}</td>
-                      <td>{asset.category}</td>
+                      <td>{asset.category?.name || 'N/A'}</td>
                       <td>
                         <span className={`badge badge-${asset.status === 'Active' ? 'success' : 'neutral'}`}>
                           {asset.status || 'Unknown'}

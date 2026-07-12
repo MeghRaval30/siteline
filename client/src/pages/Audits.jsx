@@ -7,7 +7,7 @@ export default function Audits() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    apiClient.get('/audits')
+    apiClient.get('/audit-cycles')
       .then(data => {
         setAudits(data.data || data || []);
         setLoading(false);

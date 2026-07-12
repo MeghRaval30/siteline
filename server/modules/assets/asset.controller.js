@@ -81,7 +81,7 @@ const list = async (req, res, next) => {
     query.take = parseInt(limit);
     
     const [assets, total] = await Promise.all([
-      prisma.asset.findMany(query),
+      prisma.asset.findMany({ ...query, include: { category: true } }),
       prisma.asset.count({ where: query.where })
     ]);
 

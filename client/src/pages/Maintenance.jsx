@@ -4,6 +4,10 @@ import { apiClient } from '../api/client';
 export default function Maintenance() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [assetId, setAssetId] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState('Medium');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -12,8 +16,8 @@ export default function Maintenance() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.get('/maintenance');
-      setTasks(data || []);
+      const data = await apiClient.get('/maintenance-requests');
+      setTasks(data.data || data || []);
     } catch (error) {
       console.error('Failed to fetch maintenance tasks:', error);
       setTasks([]);
@@ -22,26 +26,55 @@ export default function Maintenance() {
     }
   };
 
+  const handleLogTask = async () => {
+    if (!assetId || !description) return;
+    try {
+      setSubmitting(true);
+      await apiClient.post('/maintenance-requests', {
+        asset_id: parseInt(assetId),
+        issue_description: description,
+        priority: priority
+      });
+      setAssetId('');
+      setDescription('');
+      fetchTasks();
+    } catch (error) {
+      console.error('Failed to log task:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="page-content">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1>Maintenance Records</h1>
-        <button className="btn btn-primary">Log Maintenance</button>
       </div>
 
       <div className="card" style={{ marginBottom: '2rem' }}>
         <h2>Log New Task</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
           <div className="form-group">
             <label>Asset ID</label>
-            <input type="text" className="form-control" placeholder="Asset ID" />
+            <input type="text" className="form-control" placeholder="Asset ID" value={assetId} onChange={e => setAssetId(e.target.value)} />
           </div>
           <div className="form-group">
             <label>Issue Description</label>
-            <input type="text" className="form-control" placeholder="Describe the issue..." />
+            <input type="text" className="form-control" placeholder="Describe the issue..." value={description} onChange={e => setDescription(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Priority</label>
+            <select className="form-control" value={priority} onChange={e => setPriority(e.target.value)}>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
           </div>
         </div>
-        <button className="btn btn-primary" style={{ marginTop: '1rem' }}>Submit Task</button>
+        <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={handleLogTask} disabled={submitting}>
+          {submitting ? 'Submitting...' : 'Submit Task'}
+        </button>
       </div>
 
       <div className="card">

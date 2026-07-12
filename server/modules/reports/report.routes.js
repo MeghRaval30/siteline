@@ -3,6 +3,7 @@ const router = express.Router();
 const reportController = require('./report.controller');
 const authenticate = require('../../shared/authenticate');
 
+router.get('/', authenticate, reportController.list);
 router.get('/utilization', authenticate, reportController.utilization);
 router.get('/maintenance-frequency', authenticate, reportController.maintenanceFrequency);
 router.get('/department-allocation', authenticate, reportController.departmentAllocation);

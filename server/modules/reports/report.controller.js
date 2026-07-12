@@ -1,5 +1,20 @@
 const prisma = require('../../shared/prismaClient');
 
+exports.list = async (req, res) => {
+  try {
+    const reports = [
+      { id: 1, name: 'Asset Utilization Report', type: 'PDF', generatedAt: new Date() },
+      { id: 2, name: 'Maintenance Frequency Report', type: 'CSV', generatedAt: new Date() },
+      { id: 3, name: 'Department Allocation Summary', type: 'PDF', generatedAt: new Date() },
+      { id: 4, name: 'Booking Summary Report', type: 'Excel', generatedAt: new Date() }
+    ];
+    res.json({ success: true, data: reports, error: null });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 exports.utilization = async (req, res) => {
   try {
     const allocations = await prisma.allocation.groupBy({
