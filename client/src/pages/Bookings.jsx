@@ -1,136 +1,84 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Calendar, Plus, X } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 export default function Bookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  const [showForm, setShowForm] = useState(false);
-  const [assetId, setAssetId] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [purpose, setPurpose] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ asset_id: '', start_time: '', end_time: '', purpose: '' });
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const fetchBookings = () => {
+  const fetchData = () => {
     setLoading(true);
-    apiClient.get('/bookings')
-      .then(data => {
-        setBookings(data.data || data || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
+    apiClient.get('/bookings').then(d => { setBookings(Array.isArray(d) ? d : d?.bookings || []); setLoading(false); }).catch(() => setLoading(false));
+  };
+  useEffect(() => { fetchData(); }, []);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/bookings', { asset_id: parseInt(form.asset_id), start_time: new Date(form.start_time).toISOString(), end_time: new Date(form.end_time).toISOString(), purpose: form.purpose });
+      setShowModal(false); setForm({ asset_id: '', start_time: '', end_time: '', purpose: '' }); fetchData();
+    } catch (err) { alert(err.message); }
   };
 
-  const handleCreateBooking = async () => {
-    if (!assetId || !startTime || !endTime) return;
-    try {
-      setSubmitting(true);
-      await apiClient.post('/bookings', {
-        asset_id: parseInt(assetId),
-        start_time: startTime,
-        end_time: endTime,
-        purpose: purpose
-      });
-      setShowForm(false);
-      setAssetId('');
-      setStartTime('');
-      setEndTime('');
-      setPurpose('');
-      fetchBookings();
-    } catch (err) {
-      console.error('Failed to create booking:', err);
-      alert('Error: ' + (err.message || 'Failed to create booking'));
-    } finally {
-      setSubmitting(false);
-    }
+  const handleCancel = async (id) => {
+    if (!confirm('Cancel this booking?')) return;
+    try { await apiClient.post(`/bookings/${id}/cancel`); fetchData(); } catch (err) { alert(err.message); }
   };
+
+  const STAT = { Upcoming: 'info', Ongoing: 'success', Completed: 'neutral', Cancelled: 'danger', confirmed: 'info', Pending: 'warning' };
+
+  if (loading) return <div className="sl-skeleton sl-skeleton--card" style={{height: 400}} />;
 
   return (
-    <div className="page-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>Bookings</h2>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : 'New Booking'}
-        </button>
+    <div>
+      <div className="sl-page__header">
+        <div><h1 className="sl-page__title">Bookings</h1><p className="sl-page__subtitle">Manage asset reservations and schedules</p></div>
+        <div className="sl-page__actions"><button className="sl-btn sl-btn--primary" onClick={() => setShowModal(true)} id="new-booking"><Plus size={16} /> New Booking</button></div>
       </div>
 
-      {showForm && (
-        <div className="card" style={{ marginBottom: '2rem' }}>
-          <h3>Create New Booking</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-            <div className="form-group">
-              <label>Asset ID</label>
-              <input type="number" className="form-control" value={assetId} onChange={e => setAssetId(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Purpose</label>
-              <input type="text" className="form-control" value={purpose} onChange={e => setPurpose(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Start Time</label>
-              <input type="datetime-local" className="form-control" value={startTime} onChange={e => setStartTime(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>End Time</label>
-              <input type="datetime-local" className="form-control" value={endTime} onChange={e => setEndTime(e.target.value)} />
-            </div>
-          </div>
-          <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={handleCreateBooking} disabled={submitting}>
-            {submitting ? 'Submitting...' : 'Submit Booking'}
-          </button>
+      {bookings.length === 0 ? (
+        <div className="sl-empty"><div className="sl-empty__icon"><Calendar size={24} /></div><div className="sl-empty__title">No bookings</div><div className="sl-empty__description">Create a booking to reserve an asset</div></div>
+      ) : (
+        <div className="sl-table-container">
+          <table className="sl-table">
+            <thead><tr><th>Asset</th><th>Booked By</th><th>Start</th><th>End</th><th>Purpose</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {bookings.map(b => (
+                <tr key={b.id}>
+                  <td className="sl-font-medium">{b.asset?.name || `#${b.asset_id}`}</td>
+                  <td>{b.user?.name || 'N/A'}</td>
+                  <td className="sl-whitespace-nowrap">{new Date(b.start_time).toLocaleString()}</td>
+                  <td className="sl-whitespace-nowrap">{new Date(b.end_time).toLocaleString()}</td>
+                  <td>{b.purpose || '—'}</td>
+                  <td><span className={`sl-badge sl-badge--${STAT[b.status] || 'neutral'}`}>{b.status}</span></td>
+                  <td>{!['Cancelled','Completed'].includes(b.status) && <button className="sl-btn sl-btn--danger sl-btn--sm" onClick={() => handleCancel(b.id)}>Cancel</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      <div className="card">
-        {loading && <p>Loading bookings...</p>}
-        {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
-        
-        {!loading && !error && (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Asset ID</th>
-                  <th>Start Time</th>
-                  <th>End Time</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center' }}>No bookings found</td>
-                  </tr>
-                ) : (
-                  bookings.map(booking => (
-                    <tr key={booking.id}>
-                      <td>{booking.id}</td>
-                      <td>{booking.asset_id}</td>
-                      <td>{new Date(booking.start_time).toLocaleString()}</td>
-                      <td>{new Date(booking.end_time).toLocaleString()}</td>
-                      <td>
-                        <span className={`badge badge-${booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'neutral'}`}>
-                          {booking.status || 'unknown'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+      {showModal && (
+        <div className="sl-modal-backdrop" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+          <div className="sl-modal">
+            <div className="sl-modal__header"><h2 className="sl-modal__title">New Booking</h2><button className="sl-btn sl-btn--ghost sl-btn--icon sl-btn--sm" onClick={() => setShowModal(false)}><X size={16} /></button></div>
+            <form onSubmit={handleCreate}>
+              <div className="sl-modal__body">
+                <div className="sl-form-group sl-mb-4"><label className="sl-label">Asset ID *</label><input className="sl-input" type="number" required value={form.asset_id} onChange={e => setForm({...form, asset_id: e.target.value})} /></div>
+                <div className="sl-form-row sl-mb-4">
+                  <div className="sl-form-group"><label className="sl-label">Start *</label><input className="sl-input" type="datetime-local" required value={form.start_time} onChange={e => setForm({...form, start_time: e.target.value})} /></div>
+                  <div className="sl-form-group"><label className="sl-label">End *</label><input className="sl-input" type="datetime-local" required value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})} /></div>
+                </div>
+                <div className="sl-form-group"><label className="sl-label">Purpose</label><input className="sl-input" value={form.purpose} onChange={e => setForm({...form, purpose: e.target.value})} /></div>
+              </div>
+              <div className="sl-modal__footer"><button type="button" className="sl-btn sl-btn--secondary" onClick={() => setShowModal(false)}>Cancel</button><button type="submit" className="sl-btn sl-btn--primary">Create Booking</button></div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

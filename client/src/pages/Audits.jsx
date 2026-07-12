@@ -1,69 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { ClipboardCheck } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 export default function Audits() {
-  const [audits, setAudits] = useState([]);
+  const [cycles, setCycles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    apiClient.get('/audit-cycles')
-      .then(data => {
-        setAudits(data.data || data || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
+    apiClient.get('/audit-cycles').then(d => { setCycles(Array.isArray(d) ? d : d?.cycles || []); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
-  return (
-    <div className="page-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>Audits</h2>
-        <button className="btn btn-primary">Export Audits</button>
-      </div>
+  if (loading) return <div className="sl-skeleton sl-skeleton--card" style={{height: 300}} />;
 
-      <div className="card">
-        {loading && <p>Loading audits...</p>}
-        {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
-        
-        {!loading && !error && (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Audit ID</th>
-                  <th>Action</th>
-                  <th>Entity</th>
-                  <th>User</th>
-                  <th>Timestamp</th>
+  return (
+    <div>
+      <div className="sl-page__header"><div><h1 className="sl-page__title">Audits</h1><p className="sl-page__subtitle">Asset verification and compliance cycles</p></div></div>
+      {cycles.length === 0 ? (
+        <div className="sl-empty"><div className="sl-empty__icon"><ClipboardCheck size={24} /></div><div className="sl-empty__title">No audit cycles</div><div className="sl-empty__description">Audit cycles will appear here once created</div></div>
+      ) : (
+        <div className="sl-table-container">
+          <table className="sl-table">
+            <thead><tr><th>Name</th><th>Status</th><th>Start Date</th><th>End Date</th><th>Created By</th></tr></thead>
+            <tbody>
+              {cycles.map(c => (
+                <tr key={c.id}>
+                  <td className="sl-font-medium">{c.name}</td>
+                  <td><span className={`sl-badge sl-badge--${c.status === 'Closed' || c.status === 'Completed' ? 'success' : c.status === 'In Progress' ? 'warning' : 'info'}`}>{c.status}</span></td>
+                  <td>{new Date(c.start_date).toLocaleDateString()}</td>
+                  <td>{new Date(c.end_date).toLocaleDateString()}</td>
+                  <td>{c.creator?.name || 'N/A'}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {audits.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center' }}>No audits found</td>
-                  </tr>
-                ) : (
-                  audits.map(audit => (
-                    <tr key={audit.id}>
-                      <td>{audit.id}</td>
-                      <td>
-                        <span className="badge badge-info">{audit.action}</span>
-                      </td>
-                      <td>{audit.entityType} ({audit.entityId})</td>
-                      <td>{audit.user}</td>
-                      <td>{new Date(audit.timestamp).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

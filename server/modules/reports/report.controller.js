@@ -1,79 +1,63 @@
 const prisma = require('../../shared/prismaClient');
 
-exports.list = async (req, res) => {
+const getReportData = async (req, res, next) => {
   try {
-    const reports = [
-      { id: 1, name: 'Asset Utilization Report', type: 'PDF', generatedAt: new Date() },
-      { id: 2, name: 'Maintenance Frequency Report', type: 'CSV', generatedAt: new Date() },
-      { id: 3, name: 'Department Allocation Summary', type: 'PDF', generatedAt: new Date() },
-      { id: 4, name: 'Booking Summary Report', type: 'Excel', generatedAt: new Date() }
-    ];
-    res.json({ success: true, data: reports, error: null });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
+    const [byCategory, byStatus, byCondition, byLocationRaw, deptAllocationsRaw] = await Promise.all([
+      prisma.asset.groupBy({ by: ['category_id'], _count: { id: true } }),
+      prisma.asset.groupBy({ by: ['status'], _count: { id: true } }),
+      prisma.asset.groupBy({ by: ['condition'], _count: { id: true } }),
+      prisma.asset.groupBy({ by: ['location'], _count: { id: true } }),
+      prisma.allocation.groupBy({ by: ['holder_department_id'], _count: { id: true }, where: { status: 'Active', holder_department_id: { not: null } } })
+    ]);
 
-exports.utilization = async (req, res) => {
-  try {
-    const allocations = await prisma.allocation.groupBy({
-      by: ['asset_id'],
-      _count: { asset_id: true },
-      orderBy: { _count: { asset_id: 'desc' } }
+    // Enhance category data
+    const categories = await prisma.assetCategory.findMany();
+    const categoryMap = Object.fromEntries(categories.map(c => [c.id, c.name]));
+    const categoryEnhanced = byCategory.map(c => ({ name: categoryMap[c.category_id] || 'Unknown', count: c._count.id }));
+
+    // Enhance dept data
+    const depts = await prisma.department.findMany();
+    const deptMap = Object.fromEntries(depts.map(d => [d.id, d.name]));
+    const deptEnhanced = deptAllocationsRaw.map(d => ({ department: deptMap[d.holder_department_id] || 'Unknown', count: d._count.id }));
+
+    res.json({
+      success: true,
+      data: {
+        byCategory: categoryEnhanced,
+        byStatus: byStatus.map(s => ({ status: s.status, count: s._count.id })),
+        byCondition: byCondition.map(c => ({ condition: c.condition, count: c._count.id })),
+        byLocation: byLocationRaw.filter(l => l.location).map(l => ({ location: l.location, count: l._count.id })),
+        deptAllocations: deptEnhanced
+      }
     });
-    res.json({ data: allocations });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (error) {
+    next(error);
   }
 };
 
-exports.maintenanceFrequency = async (req, res) => {
+const getDepartmentAllocation = async (req, res, next) => {
   try {
-    const results = await prisma.$queryRaw`
-      SELECT a.category_id, COUNT(mr.id) as count
-      FROM "MaintenanceRequest" mr
-      JOIN "Asset" a ON mr.asset_id = a.id
-      GROUP BY a.category_id
-      ORDER BY count DESC
-    `;
-    
-    const formatted = results.map(r => ({
-      category_id: r.category_id,
-      count: Number(r.count)
-    }));
-
-    res.json({ data: formatted });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-exports.departmentAllocation = async (req, res) => {
-  try {
-    const allocations = await prisma.allocation.groupBy({
-      by: ['holder_department_id'],
-      _count: { holder_department_id: true },
-      where: { holder_department_id: { not: null } }
+    const depts = await prisma.department.findMany({
+      include: { _count: { select: { allocations: { where: { status: 'Active' } } } } }
     });
-    res.json({ data: allocations });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    const data = depts.map(d => ({ department: d.name, count: d._count.allocations })).sort((a,b) => b.count - a.count);
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
 };
 
-exports.bookingSummary = async (req, res) => {
+const getMaintenanceFrequency = async (req, res, next) => {
   try {
-    const bookings = await prisma.booking.groupBy({
-      by: ['asset_id'],
-      _count: { asset_id: true }
+    // Basic aggregation
+    const maint = await prisma.maintenanceRequest.groupBy({
+      by: ['priority'],
+      _count: { id: true }
     });
-    res.json({ data: bookings });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+    res.json({ success: true, data: maint.map(m => ({ priority: m.priority, count: m._count.id })) });
+  } catch (error) { next(error); }
+};
+
+module.exports = {
+  getReportData,
+  getDepartmentAllocation,
+  getMaintenanceFrequency
 };

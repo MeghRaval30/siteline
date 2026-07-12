@@ -60,9 +60,9 @@ const list = async (req, res, next) => {
 
     if (search) {
       query.where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { asset_tag: { contains: search, mode: 'insensitive' } },
-        { serial_number: { contains: search, mode: 'insensitive' } }
+        { name: { contains: search } },
+        { asset_tag: { contains: search } },
+        { serial_number: { contains: search } }
       ];
     }
 

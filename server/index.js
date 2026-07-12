@@ -11,6 +11,15 @@ app.get('/api/v1/health', (req, res) => {
   res.json({ success: true, data: { status: 'ok' }, error: null });
 });
 
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
+});
+
 // TODO: Subagents will mount their routes here
 const { authRouter } = require('./modules/auth');
 const { dashboardRouter } = require('./modules/dashboard');

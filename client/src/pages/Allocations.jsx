@@ -1,88 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { ArrowLeftRight, Package, AlertTriangle } from 'lucide-react';
 import { apiClient } from '../api/client';
+
+const STATUS_TABS = ['All', 'Active', 'Returned', 'Overdue'];
 
 export default function Allocations() {
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('All');
 
   useEffect(() => {
-    fetchAllocations();
+    apiClient.get('/allocations').then(d => { setAllocations(Array.isArray(d) ? d : d?.allocations || []); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
-  const fetchAllocations = async () => {
+  const filtered = tab === 'All' ? allocations : tab === 'Overdue'
+    ? allocations.filter(a => a.status === 'Active' && a.expected_return_date && new Date(a.expected_return_date) < new Date())
+    : allocations.filter(a => a.status === tab);
+
+  const handleReturn = async (id) => {
+    if (!confirm('Return this asset?')) return;
     try {
-      setLoading(true);
-      const data = await apiClient.get('/allocations');
-      setAllocations(data || []);
-    } catch (error) {
-      console.error('Failed to fetch allocations:', error);
-      setAllocations([]);
-    } finally {
-      setLoading(false);
-    }
+      await apiClient.post(`/allocations/${id}/return`, { condition_at_checkin: 'Good' });
+      setAllocations(prev => prev.map(a => a.id === id ? { ...a, status: 'Returned' } : a));
+    } catch (err) { alert(err.message); }
   };
 
+  if (loading) return <div className="sl-skeleton sl-skeleton--card" style={{height: 400}} />;
+
   return (
-    <div className="page-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1>Allocations & Transfers</h1>
-        <button className="btn btn-primary">New Transfer</button>
+    <div>
+      <div className="sl-page__header">
+        <div><h1 className="sl-page__title">Allocations</h1><p className="sl-page__subtitle">Track asset assignments and returns</p></div>
       </div>
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h2>Transfer Form</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-          <div className="form-group">
-            <label>Select Asset</label>
-            <select className="form-control">
-              <option>-- Select Asset --</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Destination Location/Person</label>
-            <input type="text" className="form-control" placeholder="Enter destination..." />
-          </div>
-        </div>
-        <button className="btn btn-primary" style={{ marginTop: '1rem' }}>Submit Transfer</button>
+      <div className="sl-tabs">
+        {STATUS_TABS.map(t => <button key={t} className={`sl-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>{t} {t === 'Overdue' && <span className="sl-badge sl-badge--danger sl-ml-auto" style={{marginLeft: 6}}>{allocations.filter(a => a.status === 'Active' && a.expected_return_date && new Date(a.expected_return_date) < new Date()).length}</span>}</button>)}
       </div>
 
-      <div className="card">
-        <h3>Recent Allocations</h3>
-        {loading ? (
-          <p>Loading allocations...</p>
-        ) : (
-          <div className="table-container" style={{ marginTop: '1rem' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Asset ID</th>
-                  <th>Assigned To</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allocations.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" style={{ textAlign: 'center' }}>No allocations found</td>
+      {filtered.length === 0 ? (
+        <div className="sl-empty"><div className="sl-empty__icon"><ArrowLeftRight size={24} /></div><div className="sl-empty__title">No allocations found</div></div>
+      ) : (
+        <div className="sl-table-container">
+          <table className="sl-table">
+            <thead><tr><th>Asset</th><th>Assigned To</th><th>Allocated By</th><th>Date</th><th>Expected Return</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {filtered.map(a => {
+                const isOverdue = a.status === 'Active' && a.expected_return_date && new Date(a.expected_return_date) < new Date();
+                return (
+                  <tr key={a.id}>
+                    <td><div className="sl-font-medium">{a.asset?.name || `Asset #${a.asset_id}`}</div><div className="sl-text-xs sl-text-muted sl-font-mono">{a.asset?.asset_tag}</div></td>
+                    <td>{a.holder_user?.name || a.holder_department?.name || 'N/A'}</td>
+                    <td>{a.allocator?.name || 'N/A'}</td>
+                    <td className="sl-whitespace-nowrap">{new Date(a.allocated_at).toLocaleDateString()}</td>
+                    <td className={isOverdue ? 'sl-text-danger sl-font-semibold' : ''}>
+                      {a.expected_return_date ? new Date(a.expected_return_date).toLocaleDateString() : '—'}
+                      {isOverdue && <AlertTriangle size={12} className="sl-ml-auto" style={{display: 'inline', marginLeft: 4}} />}
+                    </td>
+                    <td><span className={`sl-badge sl-badge--${a.status === 'Active' ? (isOverdue ? 'danger' : 'success') : 'neutral'}`}>{isOverdue ? 'Overdue' : a.status}</span></td>
+                    <td>{a.status === 'Active' && <button className="sl-btn sl-btn--secondary sl-btn--sm" onClick={() => handleReturn(a.id)}>Return</button>}</td>
                   </tr>
-                ) : (
-                  allocations.map(alloc => (
-                    <tr key={alloc.id}>
-                      <td>{alloc.assetId}</td>
-                      <td>{alloc.assignedTo}</td>
-                      <td>{alloc.date ? new Date(alloc.date).toLocaleDateString() : 'N/A'}</td>
-                      <td>
-                        <span className="badge badge-info">{alloc.status || 'Transferred'}</span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

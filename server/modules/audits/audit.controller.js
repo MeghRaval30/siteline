@@ -2,6 +2,19 @@ const prisma = require('../../shared/prismaClient');
 const notify = require('../../shared/notify');
 const logActivity = require('../../shared/logActivity');
 
+exports.listCycles = async (req, res) => {
+  try {
+    const cycles = await prisma.auditCycle.findMany({
+      include: { scope_department: { select: { id: true, name: true } }, creator: { select: { id: true, name: true } } },
+      orderBy: { created_at: 'desc' }
+    });
+    res.json({ success: true, data: cycles });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 exports.createCycle = async (req, res) => {
   const { name, scope_department_id, scope_location, start_date, end_date, auditor_user_ids } = req.body;
   const user_id = req.user.id;

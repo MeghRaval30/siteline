@@ -4,6 +4,7 @@ const maintenanceController = require('./maintenance.controller');
 const authenticate = require('../../shared/authenticate');
 const requireRole = require('../../shared/requireRole');
 
+router.get('/', authenticate, maintenanceController.list);
 router.post('/', authenticate, maintenanceController.raiseRequest);
 router.post('/ai/maintenance-priority', authenticate, maintenanceController.suggestPriority);
 

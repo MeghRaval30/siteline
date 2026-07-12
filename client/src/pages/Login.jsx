@@ -1,68 +1,84 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { apiClient } from '../api/client';
+
+const DEMO_CREDS = [
+  { label: 'Admin', email: 'admin@siteline.local', password: 'password123' },
+  { label: 'Manager', email: 'manager@siteline.local', password: 'password123' },
+  { label: 'Employee', email: 'alice@siteline.local', password: 'password123' },
+];
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    setError(null);
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
-      localStorage.setItem('token', response.data.token);
+      const data = await apiClient.post('/auth/login', { email, password });
+      localStorage.setItem('token', data.token);
+      const { password_hash, ...userData } = data.user || data;
+      localStorage.setItem('user', JSON.stringify(userData));
       navigate('/dashboard');
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Failed to login');
+      setError(err.message || 'Invalid credentials');
     } finally {
       setLoading(false);
     }
   };
 
+  const fillCreds = (cred) => {
+    setEmail(cred.email);
+    setPassword(cred.password);
+  };
+
   return (
-    <div className="app-container" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
-      <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
-        <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Login to SiteLine</h2>
+    <div className="sl-login">
+      <div className="sl-login__card">
+        <div className="sl-login__logo">
+          <div className="sl-sidebar__logo-icon">SL</div>
+          <span className="sl-sidebar__logo-text">SiteLine</span>
+        </div>
+        <h1 className="sl-login__title">Welcome back</h1>
+        <p className="sl-login__subtitle">Sign in to your asset management platform</p>
+
         {error && (
-          <div className="badge badge-danger" style={{ display: 'block', marginBottom: '1rem', textAlign: 'center' }}>
-            {error}
+          <div className="sl-login__error">
+            <AlertCircle size={16} /> {error}
           </div>
         )}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              className="form-control"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@company.com"
-              required
-            />
+
+        <form className="sl-login__form" onSubmit={handleSubmit}>
+          <div className="sl-form-group">
+            <label className="sl-label" htmlFor="login-email">Email</label>
+            <input id="login-email" className="sl-input" type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              className="form-control"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
+          <div className="sl-form-group">
+            <label className="sl-label" htmlFor="login-password">Password</label>
+            <input id="login-password" className="sl-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
-            {loading ? 'Logging in...' : 'Sign In'}
+          <button id="login-submit" className="sl-btn sl-btn--primary sl-btn--lg sl-w-full" type="submit" disabled={loading}>
+            {loading ? <span className="sl-btn__spinner" /> : 'Sign in'}
           </button>
         </form>
+
+        <div className="sl-login__demo">
+          <div className="sl-login__demo-label">Demo Accounts</div>
+          <div className="sl-login__demo-creds">
+            {DEMO_CREDS.map(c => (
+              <div key={c.email} className="sl-login__demo-cred" onClick={() => fillCreds(c)}>
+                <span>{c.label}</span>
+                <code>{c.email}</code>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

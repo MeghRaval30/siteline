@@ -1,65 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 export default function ActivityLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    apiClient.get('/activity-logs')
-      .then(data => {
-        setLogs(data.data || data || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
+  const fetchLogs = () => {
+    setLoading(true);
+    apiClient.get(`/activity-logs?page=${page}&limit=20`).then(d => {
+      setLogs(Array.isArray(d) ? d : d?.logs || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchLogs(); }, [page]);
+
+  if (loading) return <div className="sl-skeleton sl-skeleton--card" style={{height: 400}} />;
 
   return (
-    <div className="page-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>Activity Logs</h2>
-        <button className="btn btn-secondary">Refresh</button>
+    <div>
+      <div className="sl-page__header">
+        <div><h1 className="sl-page__title">Activity Logs</h1><p className="sl-page__subtitle">System-wide audit trail</p></div>
+        <div className="sl-page__actions"><button className="sl-btn sl-btn--secondary" onClick={fetchLogs} id="refresh-logs"><RefreshCw size={16} /> Refresh</button></div>
       </div>
-
-      <div className="card">
-        {loading && <p>Loading activity logs...</p>}
-        {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
-        
-        {!loading && !error && (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Log ID</th>
-                  <th>Description</th>
-                  <th>User</th>
-                  <th>Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" style={{ textAlign: 'center' }}>No activity logs found</td>
-                  </tr>
-                ) : (
-                  logs.map(log => (
-                    <tr key={log.id}>
-                      <td>{log.id}</td>
-                      <td>{log.description}</td>
-                      <td>{log.user}</td>
-                      <td>{new Date(log.timestamp).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+      {logs.length === 0 ? (
+        <div className="sl-empty"><div className="sl-empty__icon"><Activity size={24} /></div><div className="sl-empty__title">No activity recorded</div></div>
+      ) : (
+        <>
+          <div className="sl-timeline">
+            {logs.map((log, i) => (
+              <div className="sl-timeline__item" key={log.id || i}>
+                <div className="sl-timeline__dot sl-timeline__dot--accent" />
+                <div className="sl-timeline__content">
+                  <div className="sl-timeline__title">{log.action}</div>
+                  <div className="sl-text-xs sl-text-muted">
+                    {log.actor?.name || 'System'} {log.entity_type ? `· ${log.entity_type} #${log.entity_id}` : ''} · {new Date(log.created_at).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+          <div className="sl-pagination sl-mt-4">
+            <span className="sl-pagination__info">Page {page}</span>
+            <div className="sl-pagination__controls">
+              <button className="sl-pagination__btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>←</button>
+              <button className="sl-pagination__btn active">{page}</button>
+              <button className="sl-pagination__btn" disabled={logs.length < 20} onClick={() => setPage(p => p + 1)}>→</button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

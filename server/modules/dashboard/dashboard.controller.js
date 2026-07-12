@@ -1,79 +1,57 @@
 const prisma = require('../../shared/prismaClient');
 
-const getKPIs = async (req, res) => {
+const getDashboardStats = async (req, res, next) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const sevenDaysFromNow = new Date(today);
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-
-    // Run aggregations concurrently
-    const [
-      assetsAvailable,
-      assetsAllocated,
-      maintenanceToday,
-      activeBookings,
-      pendingTransfers,
-      upcomingReturnsResult,
-      overdueReturnsList
-    ] = await Promise.all([
+    const [totalAssets, availableAssets, allocatedAssets, inMaintenance, overdueReturns, totalUsers, totalDepartments, activeBookings, pendingTransfers] = await Promise.all([
+      prisma.asset.count(),
       prisma.asset.count({ where: { status: 'Available' } }),
       prisma.asset.count({ where: { status: 'Allocated' } }),
-      prisma.maintenanceRequest.count({
-        where: { status: { in: ['Approved', 'TechnicianAssigned', 'InProgress'] } }
-      }),
-      prisma.booking.count({
-        where: { status: { in: ['Upcoming', 'Ongoing'] } }
-      }),
-      prisma.transferRequest.count({ where: { status: 'Requested' } }),
-      prisma.allocation.count({
-        where: {
-          status: 'Active',
-          expected_return_date: {
-            gte: today,
-            lte: sevenDaysFromNow
-          }
-        }
-      }),
-      prisma.allocation.findMany({
-        where: {
-          status: 'Active',
-          expected_return_date: {
-            lt: today
-          }
-        },
-        include: {
-          asset: { select: { asset_tag: true } },
-          holder_user: { select: { name: true } }
-        }
-      })
+      prisma.asset.count({ where: { status: 'In Maintenance' } }),
+      prisma.allocation.count({ where: { status: 'Active', expected_return_date: { lt: new Date() } } }),
+      prisma.user.count(),
+      prisma.department.count(),
+      prisma.booking.count({ where: { status: 'Confirmed', start_time: { lte: new Date() }, end_time: { gte: new Date() } } }),
+      prisma.transferRequest.count({ where: { status: 'Pending' } })
     ]);
 
-    const overdueReturns = overdueReturnsList.map(item => ({
-      asset_tag: item.asset?.asset_tag,
-      holder_name: item.holder_user?.name,
-      expected_return_date: item.expected_return_date
-    }));
+    const recentActivity = await prisma.activityLog.findMany({
+      take: 10,
+      orderBy: { created_at: 'desc' },
+      include: { actor: { select: { name: true } } }
+    });
 
-    return res.status(200).json({
+    res.json({
       success: true,
       data: {
-        assetsAvailable,
-        assetsAllocated,
-        maintenanceToday,
-        activeBookings,
-        pendingTransfers,
-        upcomingReturns: upcomingReturnsResult,
-        overdueReturns
+        totalAssets, availableAssets, allocatedAssets, inMaintenance, overdueReturns, totalUsers, totalDepartments, activeBookings, pendingTransfers,
+        recentActivity: recentActivity.map(a => ({
+          id: a.id, action: a.action,
+          actor_name: a.actor?.name || 'System',
+          entity_type: a.entity_type, entity_id: a.entity_id,
+          created_at: a.created_at
+        }))
       }
     });
   } catch (error) {
-    console.error('getKPIs error:', error);
-    return res.status(500).json({ success: false, error: 'INTERNAL_ERROR' });
+    next(error);
+  }
+};
+
+const getRecentActivities = async (req, res, next) => {
+  try {
+    const { limit = 20 } = req.query;
+    const activities = await prisma.activityLog.findMany({
+      take: parseInt(limit),
+      orderBy: { created_at: 'desc' },
+      include: { actor: { select: { name: true, role: true } } }
+    });
+    res.json({ success: true, data: activities });
+  } catch (error) {
+    next(error);
   }
 };
 
 module.exports = {
-  getKPIs
+  getDashboardStats,
+  getRecentActivities
 };

@@ -1,94 +1,111 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Package, CheckCircle, Wrench, Clock, AlertTriangle, Calendar, Plus, Bot, TrendingUp, TrendingDown } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ totalAssets: 0, activeEmployees: 0, pendingRequests: 0 });
-  const [recentActivities, setRecentActivities] = useState([]);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [insights, setInsights] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    Promise.all([
+      apiClient.get('/dashboard/kpis').catch(() => null),
+      apiClient.get('/ai/insights').catch(() => []),
+      apiClient.get('/activity-logs?limit=8').catch(() => []),
+    ]).then(([s, ins, acts]) => {
+      setStats(s);
+      setInsights(Array.isArray(ins) ? ins : []);
+      setActivities(Array.isArray(acts) ? acts : acts?.logs || []);
+      setLoading(false);
+    });
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      // Fetching mock or actual endpoints
-      const [statsRes, activitiesRes] = await Promise.all([
-        apiClient.get('/dashboard/stats').catch(() => ({ data: { totalAssets: 120, activeEmployees: 45, pendingRequests: 3 } })),
-        apiClient.get('/dashboard/activities').catch(() => ({
-          data: [
-            { id: 1, action: 'Asset Assigned', user: 'John Doe', item: 'MacBook Pro', date: '2023-10-01' },
-            { id: 2, action: 'Maintenance Requested', user: 'Jane Smith', item: 'Dell Monitor', date: '2023-10-02' },
-            { id: 3, action: 'New Employee Onboarded', user: 'Admin', item: 'Alice Johnson', date: '2023-10-03' },
-          ]
-        }))
-      ]);
-      
-      setStats(statsRes.data);
-      setRecentActivities(activitiesRes.data);
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const statCards = stats ? [
+    { label: 'Total Assets', value: (stats.totalAssets || stats.availableAssets + stats.allocatedAssets + (stats.inMaintenance || 0)) || 0, icon: Package, color: 'accent', trend: '+12%', up: true },
+    { label: 'Available', value: stats.availableAssets || 0, icon: CheckCircle, color: 'success' },
+    { label: 'Allocated', value: stats.allocatedAssets || 0, icon: Package, color: 'info' },
+    { label: 'In Maintenance', value: stats.maintenanceToday || stats.inMaintenance || 0, icon: Wrench, color: 'warning' },
+    { label: 'Overdue Returns', value: stats.overdueReturns?.length || stats.overdueCount || 0, icon: AlertTriangle, color: 'danger' },
+    { label: 'Active Bookings', value: stats.activeBookings || 0, icon: Calendar, color: 'info' },
+  ] : [];
+
+  if (loading) return (
+    <div>
+      <div className="sl-page__header"><div className="sl-skeleton sl-skeleton--title" /></div>
+      <div className="sl-stats-grid">{[...Array(6)].map((_, i) => <div key={i} className="sl-skeleton sl-skeleton--card" />)}</div>
+    </div>
+  );
 
   return (
-    <div className="page-content">
-      <h1 style={{ marginBottom: '2rem' }}>Dashboard Overview</h1>
-      
-      {loading ? (
-        <p>Loading dashboard...</p>
-      ) : (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-            <div className="card">
-              <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Total Assets</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.totalAssets}</p>
-            </div>
-            <div className="card">
-              <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Active Employees</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>{stats.activeEmployees}</p>
-            </div>
-            <div className="card">
-              <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Pending Requests</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--warning)' }}>{stats.pendingRequests}</p>
-            </div>
-          </div>
+    <div>
+      <div className="sl-page__header">
+        <div>
+          <h1 className="sl-page__title">Dashboard</h1>
+          <p className="sl-page__subtitle">Overview of your asset management operations</p>
+        </div>
+        <div className="sl-page__actions">
+          <button className="sl-btn sl-btn--secondary" onClick={() => navigate('/ai-chat')} id="dash-ai-btn"><Bot size={16} /> AI Assistant</button>
+          <button className="sl-btn sl-btn--primary" onClick={() => navigate('/assets')} id="dash-add-asset"><Plus size={16} /> Add Asset</button>
+        </div>
+      </div>
 
-          <div className="card">
-            <h2 style={{ marginBottom: '1.5rem' }}>Recent Activity</h2>
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Action</th>
-                    <th>User</th>
-                    <th>Item/Details</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentActivities.map((activity) => (
-                    <tr key={activity.id}>
-                      <td><span className="badge badge-neutral">{activity.action}</span></td>
-                      <td>{activity.user}</td>
-                      <td>{activity.item}</td>
-                      <td>{activity.date}</td>
-                    </tr>
-                  ))}
-                  {recentActivities.length === 0 && (
-                    <tr>
-                      <td colSpan="4" style={{ textAlign: 'center' }}>No recent activity.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+      <div className="sl-stats-grid">
+        {statCards.map((s, i) => (
+          <div className="sl-stat" key={i}>
+            <div className={`sl-stat__icon sl-stat__icon--${s.color}`}><s.icon size={20} /></div>
+            <div className="sl-stat__label">{s.label}</div>
+            <div className="sl-stat__value">{s.value}</div>
+            {s.trend && <div className={`sl-stat__trend ${s.up ? 'sl-stat__trend--up' : 'sl-stat__trend--down'}`}>{s.up ? <TrendingUp size={12} /> : <TrendingDown size={12} />} {s.trend}</div>}
           </div>
-        </>
-      )}
+        ))}
+      </div>
+
+      <div className="sl-grid-2 sl-gap-4 sl-mt-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div className="sl-card">
+          <div className="sl-card__header">
+            <h3 className="sl-card__title">AI Insights</h3>
+            <span className={`sl-ai-status ${insights.length > 0 ? 'sl-ai-status--online' : 'sl-ai-status--offline'}`}>
+              <span className="sl-ai-status__dot" />Active
+            </span>
+          </div>
+          <div className="sl-card__body">
+            {insights.length === 0 ? (
+              <p className="sl-text-muted sl-text-sm">No insights available</p>
+            ) : insights.map((ins, i) => (
+              <div key={i} className="sl-flex sl-items-center sl-gap-3 sl-mb-4">
+                <div className={`sl-badge sl-badge--${ins.type === 'warning' ? 'warning' : ins.type === 'danger' ? 'danger' : ins.type === 'success' ? 'success' : 'info'} sl-badge--dot`}>{ins.message}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="sl-card">
+          <div className="sl-card__header">
+            <h3 className="sl-card__title">Recent Activity</h3>
+            <button className="sl-btn sl-btn--ghost sl-btn--sm" onClick={() => navigate('/activity-logs')}>View all</button>
+          </div>
+          <div className="sl-card__body">
+            {activities.length === 0 ? (
+              <p className="sl-text-muted sl-text-sm">No recent activity</p>
+            ) : (
+              <div className="sl-timeline">
+                {activities.slice(0, 6).map((act, i) => (
+                  <div className="sl-timeline__item" key={act.id || i}>
+                    <div className="sl-timeline__dot sl-timeline__dot--accent" />
+                    <div className="sl-timeline__content">
+                      <div className="sl-timeline__title">{act.action}</div>
+                      <div className="sl-timeline__time">{act.actor?.name || 'System'} · {new Date(act.created_at).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

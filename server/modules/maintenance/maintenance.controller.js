@@ -1,5 +1,20 @@
 const prisma = require('../../shared/prismaClient');
 
+const list = async (req, res, next) => {
+  try {
+    const { status, priority, page = 1, limit = 50 } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    if (priority) where.priority = priority;
+    const requests = await prisma.maintenanceRequest.findMany({
+      where, skip: (parseInt(page) - 1) * parseInt(limit), take: parseInt(limit),
+      include: { asset: { select: { id: true, name: true, asset_tag: true } }, raiser: { select: { id: true, name: true } } },
+      orderBy: { created_at: 'desc' }
+    });
+    res.json({ success: true, data: requests });
+  } catch (err) { next(err); }
+};
+
 const raiseRequest = async (req, res, next) => {
   try {
     const { asset_id, issue_description, priority, photo_url } = req.body;
@@ -192,6 +207,7 @@ const resolve = async (req, res, next) => {
 };
 
 module.exports = {
+  list,
   raiseRequest,
   suggestPriority,
   approve,

@@ -8,7 +8,7 @@ async function logActivity({ actorUserId, action, entityType, entityId, metadata
         action,
         entity_type: entityType,
         entity_id: entityId,
-        metadata: metadata || {}
+        metadata: metadata ? JSON.stringify(metadata) : null
       }
     });
   } catch (error) {

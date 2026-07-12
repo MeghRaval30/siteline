@@ -35,6 +35,7 @@ model User {
   notifications        Notification[]
   activity_logs        ActivityLog[]
   audit_cycle_auditors AuditCycleAuditor[]
+  conversation_sessions ConversationSession[]
 }
 
 model Department {
@@ -242,4 +243,13 @@ model ActivityLog {
   created_at    DateTime @default(now())
 
   actor         User? @relation(fields: [actor_user_id], references: [id])
+}
+
+model ConversationSession {
+  id         String   @id @default(uuid())
+  user_id    Int
+  messages   String   @default("[]")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user       User     @relation(fields: [user_id], references: [id])
 }

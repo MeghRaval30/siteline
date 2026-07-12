@@ -1,5 +1,24 @@
 const prisma = require('../../shared/prismaClient');
 
+const listAllocations = async (req, res, next) => {
+  try {
+    const { status, page = 1, limit = 50 } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    const allocations = await prisma.allocation.findMany({
+      where, skip: (parseInt(page) - 1) * parseInt(limit), take: parseInt(limit),
+      include: {
+        asset: { select: { id: true, name: true, asset_tag: true } },
+        holder_user: { select: { id: true, name: true } },
+        holder_department: { select: { id: true, name: true } },
+        allocator: { select: { id: true, name: true } }
+      },
+      orderBy: { allocated_at: 'desc' }
+    });
+    res.json({ success: true, data: allocations });
+  } catch (err) { next(err); }
+};
+
 const allocate = async (req, res, next) => {
   try {
     const { id: asset_id } = req.params;
@@ -254,6 +273,7 @@ const returnAllocation = async (req, res, next) => {
 };
 
 module.exports = {
+  listAllocations,
   allocate,
   createTransferRequest,
   approveTransferRequest,

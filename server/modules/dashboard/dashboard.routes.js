@@ -4,6 +4,7 @@ const authenticate = require('../../shared/authenticate');
 
 const router = express.Router();
 
-router.get('/kpis', authenticate, dashboardController.getKPIs);
+router.get('/stats', authenticate, dashboardController.getDashboardStats);
+router.get('/activities', authenticate, dashboardController.getRecentActivities);
 
 module.exports = router;

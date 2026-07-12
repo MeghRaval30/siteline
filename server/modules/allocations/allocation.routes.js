@@ -13,6 +13,7 @@ router.post('/transfer-requests/:id/approve', authenticate, requireRole(['Admin'
 router.post('/transfer-requests/:id/reject', authenticate, requireRole(['Admin', 'AssetManager', 'DepartmentHead']), allocationController.rejectTransferRequest);
 
 // Allocation endpoints
+router.get('/allocations', authenticate, allocationController.listAllocations);
 router.post('/allocations/:id/return', authenticate, requireRole(['Admin', 'AssetManager']), allocationController.returnAllocation);
 
 module.exports = router;
