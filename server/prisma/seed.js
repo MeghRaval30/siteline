@@ -55,7 +55,18 @@ async function main() {
   const firstNames = ['John', 'Jane', 'Alex', 'Sarah', 'Michael', 'Emily', 'David', 'Jessica', 'Daniel', 'Olivia', 'James', 'Sophia', 'Robert', 'Isabella', 'William', 'Mia', 'Joseph', 'Charlotte', 'Thomas', 'Amelia', 'Charles', 'Harper', 'Christopher', 'Evelyn', 'Matthew', 'Abigail'];
   const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White', 'Harris'];
 
-  const users = [];
+  // Create the 3 demo accounts that the Login page references
+  const demoAdmin = await prisma.user.create({
+    data: { name: 'Admin User', email: 'admin@siteline.local', password_hash: passwordHash, role: 'Admin', department_id: execDept.id }
+  });
+  const demoManager = await prisma.user.create({
+    data: { name: 'Manager User', email: 'manager@siteline.local', password_hash: passwordHash, role: 'AssetManager', department_id: opsDept.id }
+  });
+  const demoEmployee = await prisma.user.create({
+    data: { name: 'Alice Johnson', email: 'alice@siteline.local', password_hash: passwordHash, role: 'Employee', department_id: itDept.id }
+  });
+
+  const users = [demoAdmin, demoManager, demoEmployee];
   for (let i = 0; i < 50; i++) {
     const role = roles[i];
     const dept = randomChoice(depts);

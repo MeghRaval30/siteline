@@ -12,7 +12,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      apiClient.get('/dashboard/kpis').catch(() => null),
+      apiClient.get('/dashboard/stats').catch(() => null),
       apiClient.get('/ai/insights').catch(() => []),
       apiClient.get('/activity-logs?limit=8').catch(() => []),
     ]).then(([s, ins, acts]) => {
@@ -28,7 +28,7 @@ export default function Dashboard() {
     { label: 'Available', value: stats.availableAssets || 0, icon: CheckCircle, color: 'success' },
     { label: 'Allocated', value: stats.allocatedAssets || 0, icon: Package, color: 'info' },
     { label: 'In Maintenance', value: stats.maintenanceToday || stats.inMaintenance || 0, icon: Wrench, color: 'warning' },
-    { label: 'Overdue Returns', value: stats.overdueReturns?.length || stats.overdueCount || 0, icon: AlertTriangle, color: 'danger' },
+    { label: 'Overdue Returns', value: (Array.isArray(stats.overdueReturns) ? stats.overdueReturns.length : stats.overdueReturns) || 0, icon: AlertTriangle, color: 'danger' },
     { label: 'Active Bookings', value: stats.activeBookings || 0, icon: Calendar, color: 'info' },
   ] : [];
 
