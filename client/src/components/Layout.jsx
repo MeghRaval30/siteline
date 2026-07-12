@@ -22,7 +22,7 @@ export default function Layout() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <Package className="text-primary" size={24} />
-          <h2>AssetFlow</h2>
+          <h2>SiteLine</h2>
         </div>
         <nav className="sidebar-nav">
           <NavLink to="/dashboard" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>

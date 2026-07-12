@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,14 +14,12 @@ export default function Login() {
     setLoading(true);
     setError(null);
     try {
-      // Assuming apiClient is configured correctly (e.g., using axios)
       const response = await apiClient.post('/auth/login', { email, password });
-      console.log('Login successful', response.data);
-      // In a real app, you'd likely use a context or redirect here
-      alert('Login successful');
+      localStorage.setItem('token', response.data.token);
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Failed to login');
+      setError(err.message || 'Failed to login');
     } finally {
       setLoading(false);
     }
@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div className="app-container" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
       <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
-        <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Login to AssetFlow</h2>
+        <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Login to SiteLine</h2>
         {error && (
           <div className="badge badge-danger" style={{ display: 'block', marginBottom: '1rem', textAlign: 'center' }}>
             {error}

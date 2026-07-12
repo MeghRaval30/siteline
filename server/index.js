@@ -12,8 +12,8 @@ app.get('/api/v1/health', (req, res) => {
 });
 
 // TODO: Subagents will mount their routes here
-const authRouter = require('./modules/auth');
-const dashboardRouter = require('./modules/dashboard');
+const { authRouter } = require('./modules/auth');
+const { dashboardRouter } = require('./modules/dashboard');
 const { departmentRouter, categoryRouter, employeeRouter } = require('./modules/organization');
 const assetRouter = require('./modules/assets/asset.routes.js');
 const allocationRouter = require('./modules/allocations/allocation.routes.js');
@@ -55,5 +55,5 @@ app.use((err, req, res, next) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`AssetFlow Server running on port ${port}`);
+  console.log(`SiteLine Server running on port ${port}`);
 });

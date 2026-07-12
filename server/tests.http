@@ -1,8 +1,8 @@
-### AssetFlow API Tests
+### SiteLine API Tests
 # Prerequisite: The API must be running on http://localhost:3000
 
 @baseUrl = http://localhost:3000/api/v1
-@adminEmail = admin@assetflow.com
+@adminEmail = admin@siteline.com
 @adminPassword = password123
 @authToken = {{login.response.body.data.token}}
 @assetId = {{createAsset.response.body.data.asset.id}}
