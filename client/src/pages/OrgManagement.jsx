@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users, Plus, X } from 'lucide-react';
+import { Building2, Users, Plus, X, UserPlus } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 export default function OrgManagement() {
@@ -7,7 +7,9 @@ export default function OrgManagement() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDeptModal, setShowDeptModal] = useState(false);
+  const [showEmpModal, setShowEmpModal] = useState(false);
   const [deptForm, setDeptForm] = useState({ name: '' });
+  const [empForm, setEmpForm] = useState({ name: '', email: '', department_id: '', role: 'Employee' });
 
   useEffect(() => {
     Promise.all([
@@ -27,6 +29,21 @@ export default function OrgManagement() {
       setDepartments(prev => [...prev, dept]);
       setShowDeptModal(false);
       setDeptForm({ name: '' });
+    } catch (err) { alert(err.message); }
+  };
+
+  const handleCreateEmp = async (e) => {
+    e.preventDefault();
+    try {
+      const emp = await apiClient.post('/employees', {
+        name: empForm.name,
+        email: empForm.email,
+        department_id: empForm.department_id || null,
+        role: empForm.role
+      });
+      setEmployees(prev => [...prev, emp]);
+      setShowEmpModal(false);
+      setEmpForm({ name: '', email: '', department_id: '', role: 'Employee' });
     } catch (err) { alert(err.message); }
   };
 
@@ -72,7 +89,10 @@ export default function OrgManagement() {
         </div>
 
         <div className="sl-card">
-          <div className="sl-card__header"><h3 className="sl-card__title">Employees ({employees.length})</h3></div>
+          <div className="sl-card__header">
+            <h3 className="sl-card__title">Employees ({employees.length})</h3>
+            <button className="sl-btn sl-btn--primary sl-btn--sm" onClick={() => setShowEmpModal(true)}><UserPlus size={14} /> Add Employee</button>
+          </div>
           <div className="sl-table-container" style={{border: 'none'}}>
             <table className="sl-table sl-table--compact">
               <thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Role</th><th>Status</th></tr></thead>
@@ -103,6 +123,44 @@ export default function OrgManagement() {
             <form onSubmit={handleCreateDept}>
               <div className="sl-modal__body"><div className="sl-form-group"><label className="sl-label">Name *</label><input className="sl-input" required value={deptForm.name} onChange={e => setDeptForm({name: e.target.value})} /></div></div>
               <div className="sl-modal__footer"><button type="button" className="sl-btn sl-btn--secondary" onClick={() => setShowDeptModal(false)}>Cancel</button><button type="submit" className="sl-btn sl-btn--primary">Create</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEmpModal && (
+        <div className="sl-modal-backdrop" onClick={e => e.target === e.currentTarget && setShowEmpModal(false)}>
+          <div className="sl-modal">
+            <div className="sl-modal__header"><h2 className="sl-modal__title">Add Employee</h2><button className="sl-btn sl-btn--ghost sl-btn--icon sl-btn--sm" onClick={() => setShowEmpModal(false)}><X size={16} /></button></div>
+            <form onSubmit={handleCreateEmp}>
+              <div className="sl-modal__body">
+                <div className="sl-form-group sl-mb-4">
+                  <label className="sl-label">Full Name *</label>
+                  <input className="sl-input" required value={empForm.name} onChange={e => setEmpForm({...empForm, name: e.target.value})} placeholder="John Doe" />
+                </div>
+                <div className="sl-form-group sl-mb-4">
+                  <label className="sl-label">Email *</label>
+                  <input className="sl-input" type="email" required value={empForm.email} onChange={e => setEmpForm({...empForm, email: e.target.value})} placeholder="john@company.com" />
+                </div>
+                <div className="sl-form-group sl-mb-4">
+                  <label className="sl-label">Department</label>
+                  <select className="sl-select" value={empForm.department_id} onChange={e => setEmpForm({...empForm, department_id: e.target.value})}>
+                    <option value="">No Department</option>
+                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div className="sl-form-group">
+                  <label className="sl-label">Role</label>
+                  <select className="sl-select" value={empForm.role} onChange={e => setEmpForm({...empForm, role: e.target.value})}>
+                    <option value="Employee">Employee</option>
+                    <option value="AssetManager">Asset Manager</option>
+                    <option value="DeptHead">Dept Head</option>
+                    <option value="Auditor">Auditor</option>
+                    <option value="Admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+              <div className="sl-modal__footer"><button type="button" className="sl-btn sl-btn--secondary" onClick={() => setShowEmpModal(false)}>Cancel</button><button type="submit" className="sl-btn sl-btn--primary">Add Employee</button></div>
             </form>
           </div>
         </div>
