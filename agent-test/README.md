@@ -1,4 +1,4 @@
-# AssetFlow Agent 🏭⚡
+# AssetFlow Agent
 
 **AI-powered manufacturing asset management** — a real agentic system that queries a live database using Ollama-powered tool calling, running 100% locally on your machine.
 
