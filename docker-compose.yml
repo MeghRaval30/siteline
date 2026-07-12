@@ -13,5 +13,36 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  server:
+    restart: always
+    build:
+      context: ./server
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+      - server_db:/app/prisma
+    environment:
+      - DATABASE_URL=file:./dev.db
+      - JWT_SECRET=supersecretkey123
+    depends_on:
+      - db
+
+  client:
+    restart: always
+    build:
+      context: ./client
+    ports:
+      - "5174:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - server
+
 volumes:
   postgres_data:
+  server_db:
