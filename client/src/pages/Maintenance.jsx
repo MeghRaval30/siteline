@@ -90,7 +90,7 @@ export default function Maintenance() {
                   <th>Asset ID</th>
                   <th>Description</th>
                   <th>Status</th>
-                  <th>Cost</th>
+                  <th>Priority</th>
                 </tr>
               </thead>
               <tbody>
@@ -102,14 +102,14 @@ export default function Maintenance() {
                   tasks.map(task => (
                     <tr key={task.id}>
                       <td>{task.id}</td>
-                      <td>{task.assetId}</td>
-                      <td>{task.description}</td>
+                      <td>{task.asset_id}</td>
+                      <td>{task.issue_description}</td>
                       <td>
                         <span className={`badge badge-${task.status === 'Pending' ? 'warning' : 'success'}`}>
                           {task.status}
                         </span>
                       </td>
-                      <td>${task.cost}</td>
+                      <td>{task.priority || '-'}</td>
                     </tr>
                   ))
                 )}

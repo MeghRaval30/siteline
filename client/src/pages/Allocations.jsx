@@ -13,7 +13,7 @@ export default function Allocations() {
     try {
       setLoading(true);
       const data = await apiClient.get('/allocations');
-      setAllocations(data || []);
+      setAllocations(data.data || []);
     } catch (error) {
       console.error('Failed to fetch allocations:', error);
       setAllocations([]);
@@ -69,9 +69,9 @@ export default function Allocations() {
                 ) : (
                   allocations.map(alloc => (
                     <tr key={alloc.id}>
-                      <td>{alloc.assetId}</td>
-                      <td>{alloc.assignedTo}</td>
-                      <td>{alloc.date ? new Date(alloc.date).toLocaleDateString() : 'N/A'}</td>
+                      <td>{alloc.asset?.asset_tag || alloc.asset_id}</td>
+                      <td>{alloc.holder_user?.name || alloc.holder_department?.name || '-'}</td>
+                      <td>{alloc.allocated_at ? new Date(alloc.allocated_at).toLocaleDateString() : 'N/A'}</td>
                       <td>
                         <span className="badge badge-info">{alloc.status || 'Transferred'}</span>
                       </td>

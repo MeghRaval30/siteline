@@ -51,7 +51,8 @@ const list = async (req, res, next) => {
     const { status, category_id, department_id, search, page = 1, limit = 10, location } = req.query;
     
     const query = {
-      where: {}
+      where: {},
+      include: { category: true }
     };
 
     if (status) query.where.status = status;

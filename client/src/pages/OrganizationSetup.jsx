@@ -21,13 +21,8 @@ export default function OrganizationSetup() {
       setLoading(true);
       // Simulating API calls with fallbacks
       const [deptRes, empRes] = await Promise.all([
-        apiClient.get('/departments').catch(() => ({ data: [{ id: 1, name: 'Engineering' }, { id: 2, name: 'HR' }] })),
-        apiClient.get('/employees').catch(() => ({
-          data: [
-            { id: 1, name: 'John Doe', email: 'john@company.com', department: 'Engineering' },
-            { id: 2, name: 'Jane Smith', email: 'jane@company.com', department: 'HR' }
-          ]
-        }))
+        apiClient.get('/departments'),
+        apiClient.get('/employees')
       ]);
       setDepartments(deptRes.data);
       setEmployees(empRes.data);
@@ -44,9 +39,7 @@ export default function OrganizationSetup() {
   const handleAddDepartment = async (e) => {
     e.preventDefault();
     try {
-      const res = await apiClient.post('/departments', { name: newDeptName }).catch(() => ({
-        data: { id: Date.now(), name: newDeptName }
-      }));
+      const res = await apiClient.post('/departments', { name: newDeptName });
       setDepartments([...departments, res.data]);
       setNewDeptName('');
     } catch (err) {
@@ -62,9 +55,7 @@ export default function OrganizationSetup() {
         name: newEmpName,
         email: newEmpEmail,
         departmentId: newEmpDept
-      }).catch(() => ({
-        data: { id: Date.now(), name: newEmpName, email: newEmpEmail, department: selectedDept?.name || 'Unknown' }
-      }));
+      });
       setEmployees([...employees, res.data]);
       setNewEmpName('');
       setNewEmpEmail('');
@@ -178,7 +169,7 @@ export default function OrganizationSetup() {
                     <tr key={emp.id}>
                       <td>{emp.name}</td>
                       <td>{emp.email}</td>
-                      <td><span className="badge badge-info">{emp.department}</span></td>
+                      <td><span className="badge badge-info">{emp.department?.name || emp.department || 'N/A'}</span></td>
                     </tr>
                   ))}
                   {employees.length === 0 && (

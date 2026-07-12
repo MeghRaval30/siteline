@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ totalAssets: 0, activeEmployees: 0, pendingRequests: 0 });
+  const [stats, setStats] = useState({ assetsAvailable: 0, assetsAllocated: 0, maintenanceToday: 0 });
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,13 +15,9 @@ export default function Dashboard() {
       setLoading(true);
       // Fetching mock or actual endpoints
       const [statsRes, activitiesRes] = await Promise.all([
-        apiClient.get('/dashboard/stats').catch(() => ({ data: { totalAssets: 120, activeEmployees: 45, pendingRequests: 3 } })),
-        apiClient.get('/dashboard/activities').catch(() => ({
-          data: [
-            { id: 1, action: 'Asset Assigned', user: 'John Doe', item: 'MacBook Pro', date: '2023-10-01' },
-            { id: 2, action: 'Maintenance Requested', user: 'Jane Smith', item: 'Dell Monitor', date: '2023-10-02' },
-            { id: 3, action: 'New Employee Onboarded', user: 'Admin', item: 'Alice Johnson', date: '2023-10-03' },
-          ]
+        apiClient.get('/dashboard/kpis').catch(() => ({ data: { assetsAvailable: 0, assetsAllocated: 0, maintenanceToday: 0 } })),
+        apiClient.get('/dashboard/recent-activity').catch(() => ({
+          data: []
         }))
       ]);
       
@@ -45,15 +41,15 @@ export default function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
             <div className="card">
               <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Total Assets</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.totalAssets}</p>
+              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>{(stats.assetsAvailable || 0) + (stats.assetsAllocated || 0)}</p>
             </div>
             <div className="card">
-              <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Active Employees</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>{stats.activeEmployees}</p>
+              <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Assets Allocated</h3>
+              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>{stats.assetsAllocated || 0}</p>
             </div>
             <div className="card">
-              <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Pending Requests</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--warning)' }}>{stats.pendingRequests}</p>
+              <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Pending Maintenance</h3>
+              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--warning)' }}>{stats.maintenanceToday || 0}</p>
             </div>
           </div>
 

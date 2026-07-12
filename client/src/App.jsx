@@ -14,6 +14,14 @@ import OrganizationSetup from './pages/OrganizationSetup';
 // Subagents will import their pages here
 // e.g. import Dashboard from './pages/Dashboard';
 
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
 function App() {
   return (
     <Routes>
@@ -21,7 +29,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       
       {/* Protected Routes inside Layout */}
-      <Route path="/" element={<Layout />}>
+      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         {/* Subagents to mount routes here */}
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />

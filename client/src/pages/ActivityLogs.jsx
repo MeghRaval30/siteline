@@ -35,7 +35,7 @@ export default function ActivityLogs() {
               <thead>
                 <tr>
                   <th>Log ID</th>
-                  <th>Description</th>
+                  <th>Action</th>
                   <th>User</th>
                   <th>Timestamp</th>
                 </tr>
@@ -49,9 +49,9 @@ export default function ActivityLogs() {
                   logs.map(log => (
                     <tr key={log.id}>
                       <td>{log.id}</td>
-                      <td>{log.description}</td>
-                      <td>{log.user}</td>
-                      <td>{new Date(log.timestamp).toLocaleString()}</td>
+                      <td>{log.action}</td>
+                      <td>{log.actor?.name || log.actor_id || 'System'}</td>
+                      <td>{new Date(log.created_at).toLocaleString()}</td>
                     </tr>
                   ))
                 )}

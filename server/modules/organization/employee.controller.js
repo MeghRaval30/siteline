@@ -1,5 +1,6 @@
 const prisma = require('../../shared/prismaClient');
 const logActivity = require('../../shared/logActivity');
+const bcrypt = require('bcryptjs');
 
 const getEmployees = async (req, res) => {
   try {
@@ -87,8 +88,56 @@ const updateStatus = async (req, res) => {
   }
 };
 
+const createEmployee = async (req, res) => {
+  try {
+    const { name, email, departmentId } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ success: false, error: 'MISSING_FIELDS' });
+    }
+
+    const password_hash = await bcrypt.hash('password123', 10);
+
+    const employee = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password_hash,
+        department_id: departmentId ? parseInt(departmentId) : null,
+        role: 'Employee',
+        status: 'Active'
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        department: { select: { id: true, name: true } },
+        role: true,
+        status: true,
+        created_at: true
+      }
+    });
+
+    await logActivity({
+      actorUserId: req.user.id,
+      action: 'CREATE_EMPLOYEE',
+      entityType: 'User',
+      entityId: employee.id,
+      metadata: { email: employee.email }
+    });
+
+    return res.status(201).json({ success: true, data: employee });
+  } catch (error) {
+    console.error('createEmployee error:', error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ success: false, error: 'EMAIL_EXISTS' });
+    }
+    return res.status(500).json({ success: false, error: 'INTERNAL_ERROR' });
+  }
+};
+
 module.exports = {
   getEmployees,
   updateRole,
-  updateStatus
+  updateStatus,
+  createEmployee
 };

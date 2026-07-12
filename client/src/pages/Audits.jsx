@@ -35,10 +35,10 @@ export default function Audits() {
               <thead>
                 <tr>
                   <th>Audit ID</th>
-                  <th>Action</th>
-                  <th>Entity</th>
-                  <th>User</th>
-                  <th>Timestamp</th>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>User ID</th>
+                  <th>Start Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -51,11 +51,11 @@ export default function Audits() {
                     <tr key={audit.id}>
                       <td>{audit.id}</td>
                       <td>
-                        <span className="badge badge-info">{audit.action}</span>
+                        <span className="badge badge-info">{audit.name}</span>
                       </td>
-                      <td>{audit.entityType} ({audit.entityId})</td>
-                      <td>{audit.user}</td>
-                      <td>{new Date(audit.timestamp).toLocaleString()}</td>
+                      <td>{audit.status}</td>
+                      <td>{audit.created_by}</td>
+                      <td>{new Date(audit.start_date).toLocaleDateString()}</td>
                     </tr>
                   ))
                 )}

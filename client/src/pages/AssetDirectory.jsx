@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
+import AddAssetModal from '../components/AddAssetModal';
 
 export default function AssetDirectory() {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [search, setSearch] = useState('');
 
@@ -36,9 +38,15 @@ export default function AssetDirectory() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button className="btn btn-primary">Add New Asset</button>
+          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>Add New Asset</button>
         </div>
       </div>
+
+      <AddAssetModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={fetchAssets} 
+      />
 
       <div className="card">
         {loading ? (

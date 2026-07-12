@@ -74,6 +74,35 @@ const getKPIs = async (req, res) => {
   }
 };
 
+const getRecentActivity = async (req, res) => {
+  try {
+    const activities = await prisma.activityLog.findMany({
+      take: 5,
+      orderBy: { created_at: 'desc' },
+      include: {
+        actor: { select: { name: true } }
+      }
+    });
+
+    const formattedActivities = activities.map(act => ({
+      id: act.id,
+      action: act.action,
+      user: act.actor ? act.actor.name : 'System',
+      item: act.metadata ? act.metadata : (act.entity_type || '-'),
+      date: act.created_at.toISOString().split('T')[0]
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: formattedActivities
+    });
+  } catch (error) {
+    console.error('getRecentActivity error:', error);
+    return res.status(500).json({ success: false, error: 'INTERNAL_ERROR' });
+  }
+};
+
 module.exports = {
-  getKPIs
+  getKPIs,
+  getRecentActivity
 };
